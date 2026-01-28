@@ -1,21 +1,7 @@
-const API_URL = 'http://api.aviationstack.com/v1/flights';
-const API_KEY = import.meta.env.VITE_AVIATION_STACK_KEY;
-
 export const searchFlight = async (flightNumber) => {
-    if (!API_KEY) {
-        throw new Error('API Key is missing. Please set VITE_AVIATION_STACK_KEY in .env');
-    }
-
     try {
-        let response;
-
-        // Use local direct fetch for development, Proxy for production (to fix mixed content)
-        if (import.meta.env.DEV) {
-            response = await fetch(`${API_URL}?access_key=${API_KEY}&flight_iata=${flightNumber}`);
-        } else {
-            // In production (Vercel), use the serverless proxy
-            response = await fetch(`/api/flight?flight_iata=${flightNumber}`);
-        }
+        // Always use serverless proxy to keep API key secure
+        const response = await fetch(`/api/flight?flight_iata=${flightNumber}`);
 
         if (!response.ok) {
             throw new Error(`API Error: ${response.statusText}`);

@@ -1,6 +1,6 @@
 export default async function handler(request, response) {
     const { flight_iata } = request.query;
-    const API_KEY = process.env.VITE_AVIATION_STACK_KEY;
+    const API_KEY = process.env.AVIATION_STACK_KEY;
 
     if (!API_KEY) {
         return response.status(500).json({ error: 'Server configuration error: Missing API Key' });

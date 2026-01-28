@@ -5,7 +5,7 @@ services:
     build:
       context: .
       args:
-        VITE_AVIATION_STACK_KEY: ${VITE_AVIATION_STACK_KEY}
+        AVIATION_STACK_KEY: ${AVIATION_STACK_KEY}
     ports:
       - "8080:8080"
     env_file:
