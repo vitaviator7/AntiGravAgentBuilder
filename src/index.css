@@ -129,7 +129,7 @@ body {
 }
 
 .search-button {
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     border: none;
     border-radius: var(--radius-lg);
     color: white;
@@ -142,7 +142,7 @@ body {
 
 .search-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.5);
 }
 
 .search-button:disabled {
