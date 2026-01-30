@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
 
-const FlightSearch = ({ onSearch, isLoading }) => {
-    const [query, setQuery] = useState('');
+const AirportSearch = ({ onSearch, isLoading }) => {
+    const [airportCode, setAirportCode] = useState('');
     const [flightDate, setFlightDate] = useState('');
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (query.trim()) {
-            onSearch(query.trim(), flightDate || null);
+        if (airportCode.trim()) {
+            onSearch(airportCode.trim().toUpperCase(), flightDate || null);
         }
     };
-
-    // Get today's date in YYYY-MM-DD format for default and min value
-    const today = new Date().toISOString().split('T')[0];
 
     return (
         <div className="search-container">
@@ -20,10 +17,11 @@ const FlightSearch = ({ onSearch, isLoading }) => {
                 <input
                     type="text"
                     className="search-input"
-                    placeholder="Enter Flight Number (e.g. AA123)"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Enter Airport Code (e.g. JFK, LAX)"
+                    value={airportCode}
+                    onChange={(e) => setAirportCode(e.target.value.toUpperCase())}
                     disabled={isLoading}
+                    maxLength={4}
                 />
                 <input
                     type="date"
@@ -31,15 +29,14 @@ const FlightSearch = ({ onSearch, isLoading }) => {
                     value={flightDate}
                     onChange={(e) => setFlightDate(e.target.value)}
                     disabled={isLoading}
-                    placeholder="Select date"
                 />
                 <button type="submit" className="search-button" disabled={isLoading}>
                     {isLoading ? <span className="loader"></span> : 'Search'}
                 </button>
             </form>
-            <p className="search-hint">Date is optional - leave empty for today's flights</p>
+            <p className="search-hint">Find all departing flights from an airport</p>
         </div>
     );
 };
 
-export default FlightSearch;
+export default AirportSearch;
