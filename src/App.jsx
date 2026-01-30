@@ -14,6 +14,7 @@ function App() {
     const [activeTab, setActiveTab] = useState('flight') // 'flight' or 'airport'
     const [originCoords, setOriginCoords] = useState(null)
     const [airportCache, setAirportCache] = useState({})
+    const [useMock, setUseMock] = useState(false)
 
     const handleFlightSearch = async (flightNumber, flightDate) => {
         setIsLoading(true)
@@ -22,7 +23,7 @@ function App() {
         setHasSearched(true)
 
         try {
-            const results = await searchFlight(flightNumber, flightDate)
+            const results = await searchFlight(flightNumber, flightDate, useMock)
             setFlights(results)
         } catch (err) {
             const msg = err.message.includes('Too Many Requests')
@@ -46,7 +47,7 @@ function App() {
             let originInfo = airportCache[airportCode];
             if (!originInfo) {
                 try {
-                    originInfo = await getAirportInfo(airportCode);
+                    originInfo = await getAirportInfo(airportCode, useMock);
                     setAirportCache(prev => ({ ...prev, [airportCode]: originInfo }));
                 } catch (e) {
                     console.warn('Could not fetch origin coordinates', e);
@@ -54,7 +55,7 @@ function App() {
             }
             setOriginCoords(originInfo);
 
-            const results = await searchFlightsByAirport(airportCode, flightDate)
+            const results = await searchFlightsByAirport(airportCode, flightDate, useMock)
 
             // Enrich first few results with destination coords for the map
             // Reduced to 5 to avoid triggering rate limits on free plans
@@ -69,7 +70,7 @@ function App() {
             for (const iata of uniqueDestinations) {
                 if (!destinationMap[iata]) {
                     try {
-                        const info = await getAirportInfo(iata);
+                        const info = await getAirportInfo(iata, useMock);
                         destinationMap[iata] = info;
                     } catch (e) {
                         console.warn(`Could not fetch coords for ${iata}`, e);
@@ -116,6 +117,19 @@ function App() {
             <header className="header">
                 <h1>Flight<span className="highlight">Lookup</span></h1>
                 <p>Real-time flight status at your fingertips</p>
+
+                <div className="mode-toggle">
+                    <span className={!useMock ? 'active' : ''}>Real API</span>
+                    <label className="switch">
+                        <input
+                            type="checkbox"
+                            checked={useMock}
+                            onChange={() => setUseMock(!useMock)}
+                        />
+                        <span className="slider round"></span>
+                    </label>
+                    <span className={useMock ? 'active' : ''}>Demo Mode</span>
+                </div>
             </header>
 
             <main>
