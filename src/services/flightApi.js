@@ -99,6 +99,21 @@ export const searchFlightsByAirport = async (airportCode, flightDate = null) => 
     }
 };
 
+export const getAirportInfo = async (iataCode) => {
+    try {
+        const response = await fetch(`/api/airport?iata=${iataCode}`);
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Airport API Error:', error);
+        throw error;
+    }
+};
+
 const mapStatus = (status) => {
     // Aviation stack statuses: scheduled, active, landed, cancelled, incident, diverted
     const map = {

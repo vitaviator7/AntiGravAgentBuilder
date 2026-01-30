@@ -448,3 +448,50 @@ body {
         font-size: 2rem;
     }
 }
+
+/* Map Styles */
+.map-wrapper {
+    margin: 20px 0 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--glass-border);
+    background: var(--surface-light);
+    height: 400px;
+    position: relative;
+    z-index: 10;
+}
+
+.map-placeholder {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-light);
+    color: var(--text-secondary);
+    gap: 12px;
+}
+
+/* Leaflet Overrides */
+.leaflet-container {
+    background: #0b0e14 !important;
+}
+
+.popup-content {
+    color: #1a1a1a;
+    font-family: 'Outfit', sans-serif;
+}
+
+.popup-content strong {
+    font-size: 1rem;
+    color: var(--primary-color);
+}
+
+.custom-div-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+}
