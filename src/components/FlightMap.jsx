@@ -55,7 +55,7 @@ const FlightMap = ({ origin, flights = [] }) => {
                     iata: f.destinationIata,
                     name: f.destinationName,
                     pos: [f.destinationCoords.lat, f.destinationCoords.lng],
-                    flightNumber: f.flightNumber
+                    flight: f // Store full flight object
                 });
             }
         });
@@ -67,12 +67,16 @@ const FlightMap = ({ origin, flights = [] }) => {
 
     const mapCenter = originPos || [0, 0];
 
+    const formatTime = (timeStr) => {
+        return new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    };
+
     return (
         <div className="map-wrapper">
             <MapContainer
                 center={mapCenter}
                 zoom={4}
-                style={{ height: '400px', width: '100%', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}
+                style={{ height: '100%', width: '100%', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}
             >
                 <TileLayer
                     url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
@@ -96,10 +100,35 @@ const FlightMap = ({ origin, flights = [] }) => {
                     <React.Fragment key={dest.iata}>
                         <Marker position={dest.pos} icon={planeIcon}>
                             <Popup>
-                                <div className="popup-content">
+                                <div className="popup-content flight-details-popup">
                                     <strong>To: {dest.name}</strong>
-                                    <p>{dest.iata}</p>
-                                    <p>Flight: {dest.flightNumber}</p>
+                                    <div className="popup-meta">
+                                        <span className="popup-iata">{dest.iata}</span>
+                                        <span className={`status-badge ${dest.flight.status.toLowerCase().replace(' ', '-')}`}>
+                                            {dest.flight.status}
+                                        </span>
+                                    </div>
+                                    <div className="popup-info-grid">
+                                        <div className="info-item">
+                                            <span className="label">Flight</span>
+                                            <span className="value">{dest.flight.flightNumber}</span>
+                                        </div>
+                                        <div className="info-item">
+                                            <span className="label">Airline</span>
+                                            <span className="value">{dest.flight.airline}</span>
+                                        </div>
+                                        <div className="info-item">
+                                            <span className="label">Departs</span>
+                                            <span className="value">{formatTime(dest.flight.startTime)}</span>
+                                        </div>
+                                        <div className="info-item">
+                                            <span className="label">Arrives</span>
+                                            <span className="value">{formatTime(dest.flight.endTime)}</span>
+                                        </div>
+                                    </div>
+                                    <div className="popup-footer">
+                                        <span>Duration: {dest.flight.duration}</span>
+                                    </div>
                                 </div>
                             </Popup>
                         </Marker>
