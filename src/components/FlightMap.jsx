@@ -1,149 +1,186 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-// Fix for default Leaflet marker icons in React
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
-    iconSize: [25, 41],
-    iconAnchor: [12, 41]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
-
-// Custom plane icon for destinations
-const planeIcon = L.divIcon({
-    html: `<div style="font-size: 20px; transform: rotate(45deg);">✈️</div>`,
-    className: 'custom-div-icon',
-    iconSize: [30, 30],
-    iconAnchor: [15, 15]
-});
-
-// Component to handle map view updates
-function MapUpdater({ center, zoom }) {
-    const map = useMap();
-    useEffect(() => {
-        if (center) {
-            map.setView(center, zoom);
-        }
-    }, [center, zoom, map]);
-    return null;
-}
+import React, { useEffect, useRef, useState } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 const FlightMap = ({ origin, flights = [] }) => {
-    const [markers, setMarkers] = useState([]);
-    const [originPos, setOriginPos] = useState(null);
+    const mapContainer = useRef(null);
+    const map = useRef(null);
+    const markersRef = useRef([]);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        if (origin) {
-            setOriginPos([origin.lat, origin.lng]);
-        }
+        if (!mapContainer.current) return;
 
-        // Extract unique destinations from flights that have coordinates
-        const uniqueDestinations = [];
-        const seen = new Set();
-
-        flights.forEach(f => {
-            if (f.destinationCoords && !seen.has(f.destinationIata)) {
-                seen.add(f.destinationIata);
-                uniqueDestinations.push({
-                    iata: f.destinationIata,
-                    name: f.destinationName,
-                    pos: [f.destinationCoords.lat, f.destinationCoords.lng],
-                    flight: f // Store full flight object
-                });
-            }
+        // Initialize map with Globe projection and vibrant styling
+        map.current = new maplibregl.Map({
+            container: mapContainer.current,
+            style: {
+                version: 8,
+                sources: {
+                    'satellite': {
+                        type: 'raster',
+                        tiles: [
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                        ],
+                        tileSize: 256,
+                        attribution: 'Imagery © Esri'
+                    }
+                },
+                layers: [
+                    {
+                        id: 'satellite',
+                        type: 'raster',
+                        source: 'satellite',
+                        minzoom: 0,
+                        maxzoom: 22
+                    }
+                ]
+            },
+            center: [origin?.lng || 0, origin?.lat || 0],
+            zoom: origin ? 4 : 2,
+            pitch: 45, // Tilt for 3D effect
+            bearing: -17.6,
+            antialias: true
         });
 
-        setMarkers(uniqueDestinations);
-    }, [origin, flights]);
+        map.current.on('load', () => {
+            setIsLoaded(true);
+        });
 
-    if (!originPos) return <div className="map-placeholder">Loading map...</div>;
+        return () => {
+            if (map.current) {
+                map.current.remove();
+                map.current = null;
+            }
+        };
+    }, []);
 
-    const mapCenter = originPos || [0, 0];
+    useEffect(() => {
+        if (!map.current || !isLoaded || !origin) return;
 
-    const formatTime = (timeStr) => {
-        return new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    };
+        // Clear existing markers
+        markersRef.current.forEach(m => m.remove());
+        markersRef.current = [];
+
+        // Center on origin
+        map.current.flyTo({
+            center: [origin.lng, origin.lat],
+            zoom: 4,
+            essential: true,
+            pitch: 45
+        });
+
+        // Add Origin Marker
+        const originEl = document.createElement('div');
+        originEl.className = 'marker-origin';
+        originEl.innerHTML = '📍';
+        originEl.style.fontSize = '24px';
+        originEl.style.cursor = 'pointer';
+
+        const originMarker = new maplibregl.Marker(originEl)
+            .setLngLat([origin.lng, origin.lat])
+            .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
+                <div class="popup-content">
+                    <strong>Origin: ${origin.name}</strong>
+                    <p>${origin.iata}</p>
+                </div>
+            `))
+            .addTo(map.current);
+
+        markersRef.current.push(originMarker);
+
+        // Add Destination Markers and Path Lines
+        const featuredFlights = flights.filter(f => f.destinationCoords).slice(0, 5);
+
+        // Safety remove if exists
+        try {
+            if (map.current.getLayer('routes')) map.current.removeLayer('routes');
+            if (map.current.getSource('routes')) map.current.removeSource('routes');
+        } catch (e) { }
+
+        const routeData = {
+            type: 'FeatureCollection',
+            features: []
+        };
+
+        const formatTime = (timeStr) => {
+            return new Date(timeStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+
+        featuredFlights.forEach(f => {
+            const destCoords = [f.destinationCoords.lng, f.destinationCoords.lat];
+
+            // Marker
+            const destEl = document.createElement('div');
+            destEl.className = 'marker-dest';
+            destEl.innerHTML = '✈️';
+            destEl.style.fontSize = '20px';
+            destEl.style.transform = 'rotate(45deg)';
+            destEl.style.cursor = 'pointer';
+
+            const destMarker = new maplibregl.Marker(destEl)
+                .setLngLat(destCoords)
+                .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
+                    <div class="popup-content flight-details-popup">
+                        <strong>To: ${f.destinationName}</strong>
+                        <div class="popup-meta">
+                            <span class="popup-iata">${f.destinationIata}</span>
+                            <span class="status-badge ${f.status.toLowerCase().replace(' ', '-')}">${f.status}</span>
+                        </div>
+                        <div class="popup-info-grid">
+                            <div class="info-item"><span class="label">Flight</span><span class="value">${f.flightNumber}</span></div>
+                            <div class="info-item"><span class="label">Airline</span><span class="value">${f.airline}</span></div>
+                            <div class="info-item"><span class="label">Departs</span><span class="value">${formatTime(f.startTime)}</span></div>
+                            <div class="info-item"><span class="label">Arrives</span><span class="value">${formatTime(f.endTime)}</span></div>
+                        </div>
+                        <div class="popup-footer"><span>Duration: ${f.duration}</span></div>
+                    </div>
+                `))
+                .addTo(map.current);
+
+            markersRef.current.push(destMarker);
+
+            // Path Line
+            routeData.features.push({
+                type: 'Feature',
+                geometry: {
+                    type: 'LineString',
+                    coordinates: [[origin.lng, origin.lat], destCoords]
+                }
+            });
+        });
+
+        if (routeData.features.length > 0) {
+            map.current.addSource('routes', {
+                type: 'geojson',
+                data: routeData
+            });
+
+            map.current.addLayer({
+                id: 'routes',
+                type: 'line',
+                source: 'routes',
+                layout: {
+                    'line-join': 'round',
+                    'line-cap': 'round'
+                },
+                paint: {
+                    'line-color': '#4ade80', // Vibrant green for the paths
+                    'line-width': 3,
+                    'line-dasharray': [2, 1],
+                    'line-opacity': 0.8
+                }
+            });
+        }
+
+    }, [origin, flights, isLoaded]);
 
     return (
-        <div className="map-wrapper">
-            <MapContainer
-                center={mapCenter}
-                zoom={4}
-                style={{ height: '100%', width: '100%', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}
-            >
-                <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                />
-
-                <MapUpdater center={mapCenter} zoom={4} />
-
-                {/* Origin Marker */}
-                <Marker position={originPos}>
-                    <Popup>
-                        <div className="popup-content">
-                            <strong>Origin: {origin.name}</strong>
-                            <p>{origin.iata}</p>
-                        </div>
-                    </Popup>
-                </Marker>
-
-                {/* Destination Markers and Lines */}
-                {markers.map(dest => (
-                    <React.Fragment key={dest.iata}>
-                        <Marker position={dest.pos} icon={planeIcon}>
-                            <Popup>
-                                <div className="popup-content flight-details-popup">
-                                    <strong>To: {dest.name}</strong>
-                                    <div className="popup-meta">
-                                        <span className="popup-iata">{dest.iata}</span>
-                                        <span className={`status-badge ${dest.flight.status.toLowerCase().replace(' ', '-')}`}>
-                                            {dest.flight.status}
-                                        </span>
-                                    </div>
-                                    <div className="popup-info-grid">
-                                        <div className="info-item">
-                                            <span className="label">Flight</span>
-                                            <span className="value">{dest.flight.flightNumber}</span>
-                                        </div>
-                                        <div className="info-item">
-                                            <span className="label">Airline</span>
-                                            <span className="value">{dest.flight.airline}</span>
-                                        </div>
-                                        <div className="info-item">
-                                            <span className="label">Departs</span>
-                                            <span className="value">{formatTime(dest.flight.startTime)}</span>
-                                        </div>
-                                        <div className="info-item">
-                                            <span className="label">Arrives</span>
-                                            <span className="value">{formatTime(dest.flight.endTime)}</span>
-                                        </div>
-                                    </div>
-                                    <div className="popup-footer">
-                                        <span>Duration: {dest.flight.duration}</span>
-                                    </div>
-                                </div>
-                            </Popup>
-                        </Marker>
-                        <Polyline
-                            positions={[originPos, dest.pos]}
-                            pathOptions={{
-                                color: 'var(--primary-color)',
-                                weight: 2,
-                                opacity: 0.5,
-                                dashArray: '5, 10'
-                            }}
-                        />
-                    </React.Fragment>
-                ))}
-            </MapContainer>
+        <div className="map-wrapper" style={{ height: '600px', width: '100%', position: 'relative' }}>
+            <div ref={mapContainer} style={{ height: '100%', width: '100%' }} />
+            <div className="map-overlay-3d">
+                <span>3D Earth View</span>
+            </div>
         </div>
     );
 };
