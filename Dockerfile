@@ -10,6 +10,7 @@ ARG AVIATION_STACK_KEY
 ENV AVIATION_STACK_KEY=$AVIATION_STACK_KEY
 
 COPY . .
+RUN npm test
 RUN npm run build
 
 # Production Stage
