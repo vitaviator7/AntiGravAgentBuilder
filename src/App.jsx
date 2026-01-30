@@ -25,7 +25,10 @@ function App() {
             const results = await searchFlight(flightNumber, flightDate)
             setFlights(results)
         } catch (err) {
-            setError(err.message || 'An error occurred while fetching flight details.')
+            const msg = err.message.includes('Too Many Requests')
+                ? 'API rate limit exceeded. Please wait a minute and try again.'
+                : err.message || 'An error occurred while fetching flight details.';
+            setError(msg)
         } finally {
             setIsLoading(false)
         }
@@ -54,11 +57,11 @@ function App() {
             const results = await searchFlightsByAirport(airportCode, flightDate)
 
             // Enrich first few results with destination coords for the map
+            // Reduced to 5 to avoid triggering rate limits on free plans
             const uniqueDestinations = [...new Set(results.map(f => {
-                // The API mapper puts the IATA in parens: "Airport Name (IATA)"
                 const match = f.destination.match(/\(([^)]+)\)/);
                 return match ? match[1] : null;
-            }).filter(Boolean))].slice(0, 10);
+            }).filter(Boolean))].slice(0, 5);
 
             const destinationMap = { ...airportCache };
             const enrichedResults = [...results];
@@ -91,7 +94,10 @@ function App() {
 
             setFlights(finalResults)
         } catch (err) {
-            setError(err.message || 'An error occurred while fetching departures.')
+            const msg = err.message.includes('Too Many Requests')
+                ? 'API rate limit exceeded. Please wait a minute and try again.'
+                : err.message || 'An error occurred while fetching departures.';
+            setError(msg)
         } finally {
             setIsLoading(false)
         }
