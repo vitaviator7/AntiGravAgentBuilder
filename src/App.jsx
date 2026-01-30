@@ -22,7 +22,7 @@ function App() {
             const results = await searchFlight(flightNumber, flightDate)
             setFlights(results)
         } catch (err) {
-            setError('An error occurred while fetching flight details.')
+            setError(err.message || 'An error occurred while fetching flight details.')
         } finally {
             setIsLoading(false)
         }
@@ -38,7 +38,7 @@ function App() {
             const results = await searchFlightsByAirport(airportCode, flightDate)
             setFlights(results)
         } catch (err) {
-            setError('An error occurred while fetching departures.')
+            setError(err.message || 'An error occurred while fetching departures.')
         } finally {
             setIsLoading(false)
         }
