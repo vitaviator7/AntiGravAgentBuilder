@@ -1,31 +1,39 @@
 import React from 'react';
 
 const FlightCard = ({ flight }) => {
-    const formatDate = (dateString, timeZoneName) => {
-        const options = {
-            hour: 'numeric',
-            minute: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            // timeZoneName: 'short' 
-        };
-        return new Date(dateString).toLocaleDateString('en-US', options);
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        try {
+            const options = {
+                hour: 'numeric',
+                minute: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            };
+            return new Date(dateString).toLocaleDateString('en-US', options);
+        } catch (e) {
+            return 'N/A';
+        }
     };
 
     const generateGoogleCalendarUrl = (flight) => {
+        if (!flight.startTime || !flight.endTime) return '#';
+
         const formatTime = (dateString) => {
             return dateString.replace(/[-:]/g, '').split('.')[0];
         };
 
-        const startTime = formatTime(flight.startTime);
-        const endTime = formatTime(flight.endTime);
-        const text = encodeURIComponent(`Flight ${flight.flightNumber} (${flight.airline})`);
-        const details = encodeURIComponent(`Flight from ${flight.origin} to ${flight.destination}.\nStatus: ${flight.status}\nDuration: ${flight.duration}`);
-        const location = encodeURIComponent(`${flight.origin} to ${flight.destination}`);
+        try {
+            const startTime = formatTime(flight.startTime);
+            const endTime = formatTime(flight.endTime);
+            const text = encodeURIComponent(`Flight ${flight.flightNumber || ''} (${flight.airline || ''})`);
+            const details = encodeURIComponent(`Flight from ${flight.origin || ''} to ${flight.destination || ''}.\nStatus: ${flight.status || ''} \nDuration: ${flight.duration || ''} `);
+            const location = encodeURIComponent(`${flight.origin || ''} to ${flight.destination || ''} `);
 
-        // Google Calendar expects formatted dates in UTC as YYYYMMDDThhmmssZ
-        // The mock data is already in UTC (Z suffix), so we just strip punctuation.
-        return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${startTime}/${endTime}&details=${details}&location=${location}`;
+            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${text}&dates=${startTime}/${endTime}&details=${details}&location=${location}`;
+        } catch (e) {
+            return '#';
+        }
     };
 
     return (
@@ -37,14 +45,14 @@ const FlightCard = ({ flight }) => {
         >
             <div className="flight-card fade-in">
                 <div className="flight-header">
-                    <span className="airline">{flight.airline}</span>
-                    <span className={`status ${flight.status.toLowerCase().replace(' ', '-')}`}>{flight.status}</span>
+                    <span className="airline">{flight.airline || 'Unknown Airline'}</span>
+                    <span className={`status ${(flight.status || 'unknown').toLowerCase().replace(' ', '-')}`}>{flight.status || 'Unknown'}</span>
                 </div>
 
                 <div className="route-container">
                     <div className="location start">
-                        <div className="code">{flight.origin.split('(')[1].replace(')', '')}</div>
-                        <div className="city">{flight.origin.split('(')[0].trim()}</div>
+                        <div className="code">{flight.origin?.includes('(') ? flight.origin.split('(')[1].replace(')', '') : 'N/A'}</div>
+                        <div className="city">{flight.origin?.split('(')[0].trim() || 'N/A'}</div>
                         <div className="time">{formatDate(flight.startTime)}</div>
                     </div>
 
@@ -58,8 +66,8 @@ const FlightCard = ({ flight }) => {
                     </div>
 
                     <div className="location end">
-                        <div className="code">{flight.destination.split('(')[1].replace(')', '')}</div>
-                        <div className="city">{flight.destination.split('(')[0].trim()}</div>
+                        <div className="code">{flight.destination?.includes('(') ? flight.destination.split('(')[1].replace(')', '') : 'N/A'}</div>
+                        <div className="city">{flight.destination?.split('(')[0].trim() || 'N/A'}</div>
                         <div className="time">{formatDate(flight.endTime)}</div>
                     </div>
                 </div>

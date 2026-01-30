@@ -24,17 +24,24 @@ export const searchFlight = async (flightNumber, flightDate = null) => {
         }
 
         // Map response to our app's format
-        return data.data.map((flight, index) => ({
-            id: index,
-            flightNumber: flight.flight.iata || flight.flight.icao || flightNumber,
-            origin: `${flight.departure.airport} (${flight.departure.iata})`,
-            destination: `${flight.arrival.airport} (${flight.arrival.iata})`,
-            startTime: flight.departure.scheduled,
-            endTime: flight.arrival.scheduled,
-            duration: calculateDuration(flight.departure.scheduled, flight.arrival.scheduled),
-            status: mapStatus(flight.flight_status),
-            airline: flight.airline.name
-        }));
+        return data.data.map((flight, index) => {
+            const dep = flight.departure || {};
+            const arr = flight.arrival || {};
+            const flt = flight.flight || {};
+            const airline = flight.airline || {};
+
+            return {
+                id: index,
+                flightNumber: flt.iata || flt.icao || flightNumber || 'N/A',
+                origin: dep.airport ? `${dep.airport} (${dep.iata || '???'})` : (dep.iata || 'Unknown'),
+                destination: arr.airport ? `${arr.airport} (${arr.iata || '???'})` : (arr.iata || 'Unknown'),
+                startTime: dep.scheduled || null,
+                endTime: arr.scheduled || null,
+                duration: calculateDuration(dep.scheduled, arr.scheduled),
+                status: mapStatus(flight.flight_status),
+                airline: airline.name || 'Unknown Airline'
+            };
+        });
 
     } catch (error) {
         console.error('Flight API Error:', error);
@@ -67,17 +74,24 @@ export const searchFlightsByAirport = async (airportCode, flightDate = null) => 
         }
 
         // Map response to our app's format
-        return data.data.map((flight, index) => ({
-            id: index,
-            flightNumber: flight.flight.iata || flight.flight.icao || 'N/A',
-            origin: `${flight.departure.airport} (${flight.departure.iata})`,
-            destination: `${flight.arrival.airport} (${flight.arrival.iata})`,
-            startTime: flight.departure.scheduled,
-            endTime: flight.arrival.scheduled,
-            duration: calculateDuration(flight.departure.scheduled, flight.arrival.scheduled),
-            status: mapStatus(flight.flight_status),
-            airline: flight.airline.name
-        }));
+        return data.data.map((flight, index) => {
+            const dep = flight.departure || {};
+            const arr = flight.arrival || {};
+            const flt = flight.flight || {};
+            const airline = flight.airline || {};
+
+            return {
+                id: index,
+                flightNumber: flt.iata || flt.icao || 'N/A',
+                origin: dep.airport ? `${dep.airport} (${dep.iata || '???'})` : (dep.iata || 'Unknown'),
+                destination: arr.airport ? `${arr.airport} (${arr.iata || '???'})` : (arr.iata || 'Unknown'),
+                startTime: dep.scheduled || null,
+                endTime: arr.scheduled || null,
+                duration: calculateDuration(dep.scheduled, arr.scheduled),
+                status: mapStatus(flight.flight_status),
+                airline: airline.name || 'Unknown Airline'
+            };
+        });
 
     } catch (error) {
         console.error('Flight API Error:', error);
