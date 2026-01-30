@@ -110,33 +110,65 @@ const FlightMap = ({ origin, flights = [] }) => {
         featuredFlights.forEach(f => {
             const destCoords = [f.destinationCoords.lng, f.destinationCoords.lat];
 
-            // Marker
+            // Improved Marker Container (Larger hit area)
+            const destContainer = document.createElement('div');
+            destContainer.className = 'marker-container dest';
+            destContainer.style.width = '40px';
+            destContainer.style.height = '40px';
+            destContainer.style.display = 'flex';
+            destContainer.style.alignItems = 'center';
+            destContainer.style.justifyContent = 'center';
+            destContainer.style.cursor = 'pointer';
+
             const destEl = document.createElement('div');
             destEl.className = 'marker-dest';
             destEl.innerHTML = '✈️';
-            destEl.style.fontSize = '20px';
+            destEl.style.fontSize = '24px';
+            destEl.style.transition = 'transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
             destEl.style.transform = 'rotate(45deg)';
-            destEl.style.cursor = 'pointer';
 
-            const destMarker = new maplibregl.Marker(destEl)
-                .setLngLat(destCoords)
-                .setPopup(new maplibregl.Popup({ offset: 25 }).setHTML(`
-                    <div class="popup-content flight-details-popup">
+            destContainer.appendChild(destEl);
+
+            const popup = new maplibregl.Popup({
+                offset: 25,
+                closeButton: true,
+                closeOnClick: true,
+                className: 'flight-popup-3d',
+                maxWidth: '300px'
+            }).setHTML(`
+                <div class="popup-content flight-details-popup">
+                    <div class="popup-header-3d">
                         <strong>To: ${f.destinationName}</strong>
-                        <div class="popup-meta">
-                            <span class="popup-iata">${f.destinationIata}</span>
+                        <span class="popup-iata">${f.destinationIata}</span>
+                    </div>
+                    <div class="popup-body">
+                        <div class="status-row">
                             <span class="status-badge ${f.status.toLowerCase().replace(' ', '-')}">${f.status}</span>
+                            <span class="airline-name">${f.airline}</span>
                         </div>
                         <div class="popup-info-grid">
                             <div class="info-item"><span class="label">Flight</span><span class="value">${f.flightNumber}</span></div>
-                            <div class="info-item"><span class="label">Airline</span><span class="value">${f.airline}</span></div>
+                            <div class="info-item"><span class="label">Duration</span><span class="value">${f.duration}</span></div>
                             <div class="info-item"><span class="label">Departs</span><span class="value">${formatTime(f.startTime)}</span></div>
                             <div class="info-item"><span class="label">Arrives</span><span class="value">${formatTime(f.endTime)}</span></div>
                         </div>
-                        <div class="popup-footer"><span>Duration: ${f.duration}</span></div>
                     </div>
-                `))
+                </div>
+            `);
+
+            const destMarker = new maplibregl.Marker({
+                element: destContainer,
+                anchor: 'center'
+            })
+                .setLngLat(destCoords)
+                .setPopup(popup)
                 .addTo(map.current);
+
+            // Force popup on click for maximum reliability
+            destContainer.addEventListener('click', (e) => {
+                e.stopPropagation();
+                destMarker.togglePopup();
+            });
 
             markersRef.current.push(destMarker);
 
